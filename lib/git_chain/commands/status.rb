@@ -86,7 +86,9 @@ module GitChain
             state.downcase
           end
 
-          parts << "##{pr[:number]} #{state_str}"
+          pr_part = "##{pr[:number]} #{state_str}"
+          pr_part += " #{pr[:url]}" if pr[:url]
+          parts << pr_part
 
           if pr[:review_decision] && state == "OPEN"
             review_str = case pr[:review_decision]

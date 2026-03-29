@@ -41,6 +41,7 @@ module GitChain
           state: normalize_state(mr["state"]),
           is_draft: mr.fetch("draft", false),
           review_decision: nil, # GitLab MRs don't have a direct equivalent
+          url: mr["web_url"],
         }
       end
 

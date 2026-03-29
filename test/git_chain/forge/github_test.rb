@@ -25,12 +25,14 @@ module GitChain
           "state" => "OPEN",
           "isDraft" => false,
           "reviewDecision" => "APPROVED",
+          "url" => "https://github.com/user/repo/pull/42",
         })
 
         assert_equal(42, pr[:number])
         assert_equal("OPEN", pr[:state])
         refute(pr[:is_draft])
         assert_equal("APPROVED", pr[:review_decision])
+        assert_equal("https://github.com/user/repo/pull/42", pr[:url])
       end
 
       def test_normalize_merged_pr
@@ -40,9 +42,11 @@ module GitChain
           "state" => "MERGED",
           "isDraft" => false,
           "reviewDecision" => nil,
+          "url" => "https://github.com/user/repo/pull/10",
         })
 
         assert_equal("MERGED", pr[:state])
+        assert_equal("https://github.com/user/repo/pull/10", pr[:url])
       end
 
       def test_normalize_draft_pr
@@ -52,9 +56,11 @@ module GitChain
           "state" => "OPEN",
           "isDraft" => true,
           "reviewDecision" => nil,
+          "url" => "https://github.com/user/repo/pull/5",
         })
 
         assert(pr[:is_draft])
+        assert_equal("https://github.com/user/repo/pull/5", pr[:url])
       end
 
       private

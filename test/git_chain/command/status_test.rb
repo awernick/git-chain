@@ -99,6 +99,30 @@ module GitChain
           assert_match(/master/, out)
         end
       end
+
+      def test_status_shows_pr_url
+        with_test_repository("a-b-chain") do
+          pr_info = {
+            "a" => {
+              number: 1,
+              state: "OPEN",
+              is_draft: false,
+              review_decision: nil,
+              url: "https://github.com/user/repo/pull/1",
+            },
+          }
+          Status.any_instance.stubs(:fetch_pr_info).returns(pr_info)
+
+          out, _ = capture_io do
+            Status.new.call([])
+          end
+
+          assert_match(%r{https://github\.com/user/repo/pull/1}, out)
+          # URL should be space-separated from state, not comma-separated
+          # Account for ANSI escape codes around "open"
+          assert_match(/#1.*open.*https:/, out)
+        end
+      end
     end
   end
 end

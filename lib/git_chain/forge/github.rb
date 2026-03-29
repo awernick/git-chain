@@ -7,7 +7,7 @@ module GitChain
   module Forge
     class Github < Base
       def pr_for_branch(branch_name)
-        fields = "number,state,isDraft,reviewDecision"
+        fields = "number,state,isDraft,reviewDecision,url"
         out, _, stat = Open3.capture3(
           cli_command,
           "pr",
@@ -44,6 +44,7 @@ module GitChain
           state: pr["state"],
           is_draft: pr["isDraft"],
           review_decision: pr["reviewDecision"],
+          url: pr["url"],
         }
       end
     end

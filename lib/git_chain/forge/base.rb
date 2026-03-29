@@ -16,7 +16,7 @@ module GitChain
 
       # Look up a PR/MR for the given branch.
       # Returns a hash with normalized keys, or nil if none found:
-      #   { number:, state:, is_draft:, review_decision: }
+      #   { number:, state:, is_draft:, review_decision:, url: }
       #
       # state is normalized to: "OPEN", "MERGED", "CLOSED"
       # review_decision is normalized to: "APPROVED", "CHANGES_REQUESTED",
