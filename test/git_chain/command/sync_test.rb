@@ -14,7 +14,7 @@ module GitChain
         branch_states.each do |branch_name, state|
           pr_info = if state
             idx = branch_states.keys.index(branch_name)
-            { number: idx + 100, state: state, is_draft: false, review_decision: nil }
+            { number: idx + 100, state: state, is_draft: false, review_decision: nil, url: nil }
           end
           forge.stubs(:pr_for_branch).with(branch_name).returns(pr_info)
         end

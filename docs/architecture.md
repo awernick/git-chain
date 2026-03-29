@@ -57,7 +57,7 @@ provides a common interface for PR/MR operations:
 forge = Forge.detect(remote_url: chain.remote_url)
 if forge&.cli_available?
   pr = forge.pr_for_branch("feature-1")
-  # => { number: 42, state: "OPEN", is_draft: false, review_decision: "APPROVED" }
+  # => { number: 42, state: "OPEN", is_draft: false, review_decision: "APPROVED", url: "https://github.com/owner/repo/pull/42" }
 end
 ```
 

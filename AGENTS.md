@@ -142,7 +142,7 @@ snake_case methods and files.
 
 1. Create `lib/git_chain/forge/<name>.rb` inheriting from `Forge::Base`
 2. Implement `cli_available?` and `pr_for_branch`
-3. Normalize state to `OPEN`/`MERGED`/`CLOSED`
+3. Normalize state to `OPEN`/`MERGED`/`CLOSED` and include `url:` (PR/MR web URL)
 4. Add autoload in `forge.rb`
    Verify: `grep -n 'autoload' lib/git_chain/forge.rb`
 5. Add detection pattern in `Forge.from_remote_url`
