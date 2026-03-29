@@ -2,6 +2,7 @@
 
 module GitChain
   module Commands
+    autoload :Adopt, "git_chain/commands/adopt"
     autoload :Branch, "git_chain/commands/branch"
     autoload :Command, "git_chain/commands/command"
     autoload :List, "git_chain/commands/list"
