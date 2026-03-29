@@ -86,9 +86,12 @@ module GitChain
             state.downcase
           end
 
-          pr_part = "##{pr[:number]} #{state_str}"
-          pr_part += " #{pr[:url]}" if pr[:url]
-          parts << pr_part
+          number_str = if pr[:url]
+            CLI::UI::ANSI.hyperlink(pr[:url], "##{pr[:number]}")
+          else
+            "##{pr[:number]}"
+          end
+          parts << "#{number_str} #{state_str}"
 
           if pr[:review_decision] && state == "OPEN"
             review_str = case pr[:review_decision]

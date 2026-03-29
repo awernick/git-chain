@@ -36,7 +36,19 @@ module CLI
       # - +str+ - The string from which to strip codes
       #
       def self.strip_codes(str)
-        str.gsub(/\x1b\[[\d;]+[A-z]|\r/, '')
+        str.gsub(/\x1b\[[\d;]+[A-z]|\x1b\]8;[^\x1b\x07]*;[^\x1b\x07]*(?:\x1b\\|\x07)|\r/, '')
+      end
+
+      # Returns an OSC 8 hyperlink escape sequence.
+      # Terminals that do not support OSC 8 display the text with no link.
+      #
+      # ==== Attributes
+      #
+      # - +url+ - The URL to link to
+      # - +text+ - The visible text
+      #
+      def self.hyperlink(url, text)
+        "#{ESC}]8;;#{url}#{ESC}\\#{text}#{ESC}]8;;#{ESC}\\"
       end
 
       # Returns an ANSI control sequence

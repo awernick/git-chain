@@ -100,7 +100,7 @@ module GitChain
         end
       end
 
-      def test_status_shows_pr_url
+      def test_status_shows_pr_url_as_hyperlink
         with_test_repository("a-b-chain") do
           pr_info = {
             "a" => {
@@ -117,10 +117,13 @@ module GitChain
             Status.new.call([])
           end
 
-          assert_match(%r{https://github\.com/user/repo/pull/1}, out)
-          # URL should be space-separated from state, not comma-separated
-          # Account for ANSI escape codes around "open"
-          assert_match(/#1.*open.*https:/, out)
+          # OSC 8 open tag wraps the PR number with the URL
+          assert_match(%r{\x1b\]8;;https://github\.com/user/repo/pull/1\x1b\\}, out)
+          # The visible text #1 is present
+          assert_match(/#1/, out)
+          # The raw URL does NOT appear as plain text outside OSC 8 sequences
+          stripped = CLI::UI::ANSI.strip_codes(out)
+          refute_match(%r{https://github\.com/user/repo/pull/1}, stripped)
         end
       end
     end
