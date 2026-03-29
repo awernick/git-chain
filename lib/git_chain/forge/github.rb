@@ -6,14 +6,10 @@ require "json"
 module GitChain
   module Forge
     class Github < Base
-      def cli_available?
-        command_available?("gh")
-      end
-
       def pr_for_branch(branch_name)
         fields = "number,state,isDraft,reviewDecision"
         out, _, stat = Open3.capture3(
-          "gh",
+          cli_command,
           "pr",
           "list",
           "--head",
@@ -36,6 +32,10 @@ module GitChain
       end
 
       private
+
+      def default_cli_command
+        "gh"
+      end
 
       # gh returns state as OPEN/MERGED/CLOSED, which matches our normalized format.
       def normalize(pr)

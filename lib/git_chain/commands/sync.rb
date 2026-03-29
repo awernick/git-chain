@@ -75,15 +75,7 @@ module GitChain
       private
 
       def detect_merged_branches(chain)
-        forge = Forge.detect(remote_url: chain.remote_url)
-
-        unless forge
-          raise(Abort, "No forge detected for remote URL. Ensure the remote points to GitHub or GitLab.")
-        end
-
-        unless forge.cli_available?
-          raise(Abort, "Forge CLI is not available. Install 'gh' (GitHub) or 'glab' (GitLab).")
-        end
+        forge = Forge.detect!(remote_url: chain.remote_url)
 
         merged = {}
         chain.branches[1..-1].each do |branch|

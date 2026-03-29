@@ -12,34 +12,54 @@ module GitChain
       # Detect the forge from git config override or remote URL.
       # Returns a forge adapter instance, or nil if detection fails.
       def detect(remote_url: nil)
-        adapter = from_config_override
+        cli_override = Git.get_config("chain.forgeCli")
+
+        adapter = from_config_override(cli_override)
         return adapter if adapter
 
         remote_url ||= Git.remote_url(branch: Git.current_branch.to_s)
         return if remote_url.nil? || remote_url.empty?
 
-        from_remote_url(remote_url)
+        from_remote_url(remote_url, cli_override)
+      end
+
+      # Detect the forge and verify CLI availability.
+      # Raises Abort with a clear message on failure.
+      def detect!(remote_url: nil)
+        forge = detect(remote_url: remote_url)
+
+        unless forge
+          raise(Abort, "No forge detected. Ensure the remote points to GitHub or GitLab, " \
+            "or set forge manually: git config chain.forge github")
+        end
+
+        unless forge.cli_available?
+          raise(Abort, "Forge CLI '#{forge.cli_command}' is not available. " \
+            "Install it or override: git config chain.forgeCli /path/to/cli")
+        end
+
+        forge
       end
 
       private
 
-      def from_config_override
+      def from_config_override(cli_override)
         forge_type = Git.get_config("chain.forge")
         return unless forge_type
 
         case forge_type.downcase
-        when "github" then Github.new
-        when "gitlab" then Gitlab.new
+        when "github" then Github.new(cli_command: cli_override)
+        when "gitlab" then Gitlab.new(cli_command: cli_override)
         end
       end
 
-      def from_remote_url(url)
+      def from_remote_url(url, cli_override)
         host = extract_host(url)
         return unless host
 
         case host
-        when /\Agithub\.com\z/ then Github.new
-        when /gitlab/ then Gitlab.new
+        when /\Agithub\.com\z/ then Github.new(cli_command: cli_override)
+        when /gitlab/ then Gitlab.new(cli_command: cli_override)
         end
       end
 

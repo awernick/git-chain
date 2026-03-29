@@ -184,13 +184,14 @@ module GitChain
         with_test_repository("a-b-chain") do
           forge = mock("forge")
           forge.stubs(:cli_available?).returns(false)
+          forge.stubs(:cli_command).returns("gh")
           Forge.stubs(:detect).returns(forge)
 
           err = assert_raises(Abort) do
             capture_io { Sync.new.call }
           end
 
-          assert_match(/Forge CLI is not available/, err.message)
+          assert_match(/not available/, err.message)
         end
       end
 

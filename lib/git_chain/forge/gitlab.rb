@@ -6,13 +6,9 @@ require "json"
 module GitChain
   module Forge
     class Gitlab < Base
-      def cli_available?
-        command_available?("glab")
-      end
-
       def pr_for_branch(branch_name)
         out, _, stat = Open3.capture3(
-          "glab",
+          cli_command,
           "mr",
           "list",
           "--source-branch",
@@ -32,6 +28,10 @@ module GitChain
       end
 
       private
+
+      def default_cli_command
+        "glab"
+      end
 
       # glab returns state as "opened"/"merged"/"closed".
       # Normalize to our uppercase format: OPEN/MERGED/CLOSED.
