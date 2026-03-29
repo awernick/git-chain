@@ -11,63 +11,12 @@ This fork adds: chain status with tree view, forge abstraction
 (GitHub/GitLab), and is actively developing sync, PR creation, and landing
 features.
 
-## Repository Structure
-
-```
-bin/
-  git-chain              # Entry point (executable)
-lib/
-  git_chain.rb           # Module root, autoloads, constants
-  git_chain/
-    commands.rb           # Command registry (autoloads all commands)
-    commands/
-      command.rb          # Base class for all commands
-      branch.rb           # Create/insert branches in a chain
-      list.rb             # List existing chains
-      prune.rb            # Remove merged branches
-      push.rb             # Push all chain branches
-      rebase.rb           # Rebase all chain branches
-      setup.rb            # Configure a new chain
-      status.rb           # Show chain status with tree view (fork addition)
-      teardown.rb         # Remove chain configuration
-    entry_point.rb        # CLI argument parsing, command dispatch
-    forge.rb              # Forge auto-detection factory (fork addition)
-    forge/
-      base.rb             # Forge interface (cli_available?, pr_for_branch)
-      github.rb           # GitHub adapter (gh CLI)
-      gitlab.rb           # GitLab adapter (glab CLI)
-    git.rb                # Git command wrapper (shells out to git)
-    models.rb             # Model registry
-    models/
-      model.rb            # Base model
-      branch.rb           # Branch model (name, chain, parent, branch_point)
-      chain.rb            # Chain model (name, sorted branches)
-    options.rb            # Shared option modules
-    options/
-      chain_name.rb       # -c/--chain flag mixin
-    util.rb               # Utility registry
-    util/
-      github.rb           # GitHub URL parser
-      output.rb           # Output helpers (puts, puts_error, etc.)
-vendor/
-  bootstrap.rb            # Load path setup for vendored deps
-  deps/
-    cli-kit/              # Shopify CLI framework (vendored)
-    cli-ui/               # Shopify CLI UI formatting (vendored)
-fixtures/
-  *.sh                    # Shell scripts that create test git repos
-test/
-  test_helper.rb          # Minitest setup, RepositoryTestHelper
-  git_chain/
-    command/              # Command tests
-    forge/                # Forge adapter tests
-    model/                # Model tests
-    util/                 # Utility tests
-```
-
 ## Build / Test Commands
 
 ```bash
+# Install dependencies
+bundle install
+
 # Run the full test suite
 bundle exec rake test
 
@@ -83,9 +32,11 @@ bin/git-chain <command>
 
 ### Ruby Version
 
-The upstream repo targets Ruby 2.6. This fork maintains compatibility with
-Ruby 4.0+ (Homebrew default). If the system Ruby is too old, use the
-Homebrew Ruby:
+The upstream repo targets Ruby 2.6 (`.ruby-version` is 2.6.10). CI tests
+Ruby 2.6 through 3.2. This fork has been verified to work with Ruby 4.0+.
+
+For local development, use Homebrew Ruby since the macOS system Ruby (2.6)
+lacks some newer features:
 
 ```bash
 export PATH="/opt/homebrew/Cellar/ruby/4.0.1/bin:$PATH"
@@ -104,81 +55,60 @@ built from a fixture.
 Available fixtures:
 - `a-b` - Two branches (a, b), no chain configured
 - `a-b-chain` - Two branches (a, b) in a chain called "default"
-- `a-b-conflict` - Two branches with conflicting changes
+- `a-b-conflicts` - Two branches with conflicting changes
+- `a-b-merged-chain` - Chain with a merged branch
+- `doc-example` - Example chain for documentation
+- `orphan` - Orphan branch scenario
+
+Verify with: `ls fixtures/*.sh`
+
+## Definition of Done
+
+A task is complete when:
+1. `bundle exec rake test` exits 0
+2. `bundle exec rubocop` exits 0
+3. Changes are committed following conventional commits
+4. Commits reference a tracked issue (footer: `Closes #N` or `Fixes #N`)
+
+## When Blocked
+
+- If a test fails after 3 attempts: stop and report the failure with full output
+- If a dependency or gem is missing: run `bundle install`, then retry
+- If a fixture doesn't cover your test case: create a new one in `fixtures/`
+- If requirements are ambiguous: ask for clarification, don't guess
+- Never: delete tests to resolve errors, skip rubocop, or force push
+
+## Repository Structure
+
+```
+bin/git-chain              # Entry point (executable)
+lib/git_chain/
+  commands/                # Command implementations (one file per command)
+  forge/                   # Forge adapters: GitHub (gh), GitLab (glab)
+  models/                  # Branch and Chain data models
+  git.rb                   # Git command wrapper (shells out via Open3)
+fixtures/*.sh              # Shell scripts that create test git repos
+test/git_chain/            # Minitest tests (mirrors lib/ structure)
+vendor/deps/               # Vendored Shopify CLI framework (cli-kit, cli-ui)
+```
 
 ## Architecture
 
-### Command Pattern
+See `docs/architecture.md` for full details (command pattern, chain
+metadata, forge abstraction). Key constraints:
 
-All commands inherit from `Commands::Command` and implement:
-- `description` - Help text
-- `run(options)` - Command logic
-- `configure_option_parser(opts, options)` - CLI flags (optional)
-
-Commands that operate on a chain include `Options::ChainName` which adds
-the `-c/--chain` flag and `current_chain(options)` helper.
-
-New commands are registered by adding an `autoload` line in `commands.rb`.
-
-### Output Formatting
-
-All output goes through `Util::Output` (included in `Command`). Use the
-`puts` method with cli-ui formatting tags:
-
-```ruby
-puts("{{bold:title}}")              # Bold
-puts("{{cyan:branch_name}}")        # Colored
-puts("{{green:success message}}")   # Green
-puts("{{red:error message}}")       # Red
-puts("{{yellow:warning}}")          # Yellow
-puts("{{info:name}} {{reset:text}}")  # Info style
-```
-
-Do not use `$stdout.puts` or `Kernel#puts` directly.
-
-### Git Operations
-
-All git commands go through `GitChain::Git`, which shells out to `git` via
-`Open3.capture3`. Use `Git.exec` for commands that must succeed (raises
-`Git::Failure` on error) and `Git.capture3` when you need to check the
-exit status yourself.
-
-### Chain Metadata
-
-Chain configuration is stored in git config (not files):
-
-```
-branch.<name>.chain = <chain-name>
-branch.<name>.parentBranch = <parent-branch-name>
-branch.<name>.branchPoint = <commit-sha>
-```
-
-`Models::Chain.from_config(name)` reconstructs the chain by reading these
-config entries and sorting branches by parent relationships.
-
-### Forge Abstraction
-
-The `Forge` module detects GitHub or GitLab from the remote URL and
-provides a common interface for PR/MR operations:
-
-```ruby
-forge = Forge.detect(remote_url: chain.remote_url)
-if forge&.cli_available?
-  pr = forge.pr_for_branch("feature-1")
-  # => { number: 42, state: "OPEN", is_draft: false, review_decision: "APPROVED" }
-end
-```
-
-Detection priority:
-1. `git config chain.forge` override (for custom domains)
-2. Remote URL hostname matching
-
-States are normalized to `OPEN`, `MERGED`, `CLOSED` across forges.
-
-When adding forge-dependent features, use this abstraction rather than
-calling `gh` or `glab` directly.
+- **Output**: Use `Util::Output#puts` with cli-ui tags, not `$stdout.puts`
+  or `Kernel#puts`. Verify: `grep -rn '\$stdout\.puts\|Kernel\.puts' lib/ test/`
+- **Git operations**: Use `GitChain::Git.exec` (raises on failure) or
+  `Git.capture3` (check exit status). Do not shell out to `git` directly.
+- **Forge**: Use the `Forge` abstraction for PR/MR operations. Do not
+  call `gh` or `glab` directly.
+- **Commands**: Register new commands with `autoload` in `commands.rb`.
 
 ## Code Style
+
+Style is enforced by `bundle exec rubocop` (exit 0 = pass). The rules
+below are checked automatically; they're documented here for context.
 
 ### General
 
@@ -217,8 +147,10 @@ calling `gh` or `glab` directly.
 1. Create `lib/git_chain/commands/<name>.rb`
 2. Inherit from `Command`, include `Options::ChainName` if needed
 3. Add `autoload :<Name>, "git_chain/commands/<name>"` to `commands.rb`
+   Verify: `grep -n 'autoload' lib/git_chain/commands.rb`
 4. Create `test/git_chain/command/<name>_test.rb`
 5. Create a fixture in `fixtures/` if existing ones don't cover your case
+6. Verify: `bundle exec rake test && bundle exec rubocop`
 
 ### Adding a New Forge
 
@@ -226,44 +158,23 @@ calling `gh` or `glab` directly.
 2. Implement `cli_available?` and `pr_for_branch`
 3. Normalize state to `OPEN`/`MERGED`/`CLOSED`
 4. Add autoload in `forge.rb`
+   Verify: `grep -n 'autoload' lib/git_chain/forge.rb`
 5. Add detection pattern in `Forge.from_remote_url`
 6. Create `test/git_chain/forge/<name>_test.rb`
+7. Verify: `bundle exec rake test && bundle exec rubocop`
 
 ## Git Workflow
 
-### Branching
-
-- Branch from `main` for all work
-- Branch naming: `feat/<short-name>`, `fix/<short-name>`
-- One branch per issue or logical change
-
-### Commits
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <description>
-
-<body>
-
-Closes #N
-```
-
-Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
-Scopes: `status`, `sync`, `push`, `forge`, `branch`, `pr`, etc.
-
-### Pull Requests
-
-- PRs target `main`
-- Squash merge (one commit per PR on main)
+- Branch from `main`; naming: `feat/<short-name>`, `fix/<short-name>`
+- Follow [Conventional Commits](https://www.conventionalcommits.org/):
+  `<type>(<scope>): <description>`
+- Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+- Scopes: `status`, `sync`, `push`, `forge`, `branch`, `pr`
+- Link issues in commit footer: `Closes #N`
+- PRs target `main`, squash merge (one commit per PR on main)
 - PR title follows conventional commit format
-- Link issues in the PR body with `Closes #N` or `Refs #N`
-
-### Upstream Relationship
-
-This is an independent fork of Shopify/git-chain. We do not track upstream
-or maintain cherry-pick compatibility. If Shopify renews active development,
-we can evaluate contributing features back, but we do not optimize for that.
+- This is an independent fork of Shopify/git-chain. We do not track
+  upstream or maintain cherry-pick compatibility.
 
 ## Security
 
