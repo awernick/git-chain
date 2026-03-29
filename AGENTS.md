@@ -2,14 +2,13 @@
 
 ## Overview
 
-Fork of [Shopify/git-chain](https://github.com/Shopify/git-chain) with
-additional features for stacked PR workflows. A Ruby CLI tool that manages
-chains of dependent git branches, handling rebasing, pushing, and status
-tracking across the stack.
+Independent fork of [Shopify/git-chain](https://github.com/Shopify/git-chain)
+that does not track upstream. Ruby CLI for stacked PR workflows that manages
+chains of dependent branches.
 
-This fork adds: chain status with tree view, forge abstraction
-(GitHub/GitLab), chain-aware sync after merge, and branch insertion
-flags (`--after`/`--before`).
+This fork adds: chain status tree view, forge abstraction (GitHub/GitLab),
+chain-aware sync after merge, adopt for existing branches, and branch
+insertion flags (`--after`/`--before`).
 
 ## Build / Test Commands
 
@@ -51,6 +50,13 @@ Available fixtures:
 - `orphan` - Orphan branch scenario
 
 Verify with: `ls fixtures/*.sh`
+
+### CLI Commands
+
+Registered commands: `adopt`, `branch`, `list`, `prune`, `push`,
+`rebase`, `setup`, `status`, `sync`, `teardown`
+
+Verify: `grep -n 'autoload' lib/git_chain/commands.rb`
 
 ## Definition of Done
 
@@ -148,7 +154,8 @@ snake_case methods and files.
 - Follow [Conventional Commits](https://www.conventionalcommits.org/):
   `<type>(<scope>): <description>`
 - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
-- Scopes: `status`, `sync`, `push`, `forge`, `branch`, `pr`, `ruby`, `docs`
+- Scopes: `adopt`, `branch`, `list`, `prune`, `push`, `rebase`, `setup`,
+  `status`, `sync`, `teardown`, `forge`, `pr`, `ruby`, `docs`
 - Link issues in commit footer: `Closes #N`
 - PRs target `main`, squash merge (one commit per PR on main)
 - PR title follows conventional commit format
