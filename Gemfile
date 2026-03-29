@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 source "https://rubygems.org"
 
 # None of these can actually be used in a development copy of dev
@@ -8,11 +9,11 @@ source "https://rubygems.org"
 gem "logger"
 
 group :development, :test do
-  gem "rubocop", "~> 1.13.0"
+  gem "rubocop"
   gem "rubocop-performance"
   gem "rubocop-minitest"
   gem "rubocop-rake"
-  gem "rubocop-shopify", "~> 2.0.1", require: false
+  gem "rubocop-shopify", require: false
   gem "rake"
 end
 

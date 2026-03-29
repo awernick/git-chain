@@ -45,11 +45,11 @@ deps.each do |dep, copy_path|
 
     if head_sha != fetch_head_sha
       warn(
-        "Copied files from #{path} to satisfy dependency #{dep}.\n" \
-        "  However, the repo at #{path} isn't up to date.\n" \
-        "  The checked-out revision is #{head_sha[0..8]}, and "\
-        "origin/master is #{fetch_head_sha[0..8]}.\n" \
-        "  Unless you know what you're doing, you should 'dev cd #{dep} && git pull', then run this again."
+        "Copied files from #{path} to satisfy dependency #{dep}.\n  " \
+          "However, the repo at #{path} isn't up to date.\n  " \
+          "The checked-out revision is #{head_sha[0..8]}, and " \
+          "origin/master is #{fetch_head_sha[0..8]}.\n  " \
+          "Unless you know what you're doing, you should 'dev cd #{dep} && git pull', then run this again.",
       )
     end
 

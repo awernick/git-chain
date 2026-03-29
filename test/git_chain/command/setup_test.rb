@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "test_helper"
 
 module GitChain
@@ -10,7 +11,7 @@ module GitChain
         capture_io do
           with_test_repository("a-b-chain") do
             chain = Models::Chain.from_config("default")
-            Setup.new.call(%w(master a b))
+            Setup.new.call(["master", "a", "b"])
             assert_equal(chain, Models::Chain.from_config("default"))
           end
         end
@@ -20,7 +21,7 @@ module GitChain
         capture_io do
           with_test_repository("orphan") do
             err = assert_raises(Abort) do
-              Setup.new.call(%w(a b))
+              Setup.new.call(["a", "b"])
             end
             assert_equal("Branches are not all connected", err.message)
           end
@@ -30,7 +31,7 @@ module GitChain
       def test_branches_dupes
         capture_io do
           with_test_repository("a-b") do
-            [%w(b b), %w(a b b)].each do |branches|
+            [["b", "b"], ["a", "b", "b"]].each do |branches|
               err = assert_raises(Abort) do
                 Setup.new.call(branches)
               end
@@ -48,10 +49,10 @@ module GitChain
             assert_equal("default", before.name)
             assert_empty(before.branches)
 
-            Setup.new.call(%w(--chain default master a b))
+            Setup.new.call(["--chain", "default", "master", "a", "b"])
 
             chain = Models::Chain.from_config("default")
-            assert_equal(%w(master a b), chain.branch_names)
+            assert_equal(["master", "a", "b"], chain.branch_names)
             chain.branches.each_with_index do |b, i|
               if i == 0
                 assert_nil(b.parent_branch)

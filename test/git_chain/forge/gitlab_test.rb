@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "test_helper"
 
 module GitChain
@@ -14,7 +15,7 @@ module GitChain
 
         assert_equal(42, mr[:number])
         assert_equal("OPEN", mr[:state])
-        assert_equal(false, mr[:is_draft])
+        refute(mr[:is_draft])
         assert_nil(mr[:review_decision])
       end
 
@@ -48,7 +49,7 @@ module GitChain
           "draft" => true,
         })
 
-        assert_equal(true, mr[:is_draft])
+        assert(mr[:is_draft])
       end
 
       def test_normalize_missing_draft_field
@@ -58,7 +59,7 @@ module GitChain
           "state" => "opened",
         })
 
-        assert_equal(false, mr[:is_draft])
+        refute(mr[:is_draft])
       end
 
       def test_review_decision_always_nil

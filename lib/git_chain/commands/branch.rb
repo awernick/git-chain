@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "optparse"
 
 module GitChain
@@ -33,6 +34,7 @@ module GitChain
         when 1
           start_point = Git.current_branch
           raise(Abort, "You are not currently on any branch") unless start_point
+
           branch_name = options[:args][0]
         when 2
           start_point, branch_name = options[:args]
@@ -75,6 +77,7 @@ module GitChain
 
         if branch_names.empty?
           raise(Abort, "Unable to insert, #{chain_name} does not exist yet") if options[:mode] == :insert
+
           branch_names << start_point << branch_name
         else
           is_last = branch_names.last == start_point

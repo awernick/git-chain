@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "open3"
 
 module GitChain
@@ -11,7 +12,7 @@ module GitChain
 
     class << self
       def capture3(*args, dir: nil)
-        cmd = %w(git)
+        cmd = ["git"]
         cmd += ["-C", dir] if dir
         cmd += args
         Open3.capture3(*cmd)
@@ -20,6 +21,7 @@ module GitChain
       def exec(*args, dir: nil)
         out, err, stat = capture3(*args, dir: dir)
         raise(Failure.new(args, err)) unless stat.success?
+
         out.chomp
       end
 
@@ -30,7 +32,7 @@ module GitChain
       end
 
       def chains(chain_name: nil, dir: nil)
-        args = %w(config --null --get-regexp ^branch\\..+\\.chain$)
+        args = ["config", "--null", "--get-regexp", '^branch\\..+\\.chain$']
         args << "^#{Regexp.escape(chain_name)}$" if chain_name
         exec(*args, dir: dir)
           .split("\0")
@@ -68,6 +70,7 @@ module GitChain
       def remote_url(branch: "", dir: nil)
         name = remote_name(branch: branch, dir: dir)
         return if name.to_s.empty?
+
         exec("remote", "get-url", name)
       end
 
@@ -97,14 +100,15 @@ module GitChain
       end
 
       def get_config(key, urlmatch: nil, scope: nil, dir: nil)
-        args = %w(--includes)
+        args = ["--includes"]
         args += if urlmatch
           ["--get-urlmatch", key, urlmatch]
         else
           ["--get", key]
         end
         out, _, stat = git_config(*args, scope: scope, dir: dir)
-        return nil unless stat.success?
+        return unless stat.success?
+
         out = out.chomp
         out unless out.empty?
       end
@@ -112,6 +116,7 @@ module GitChain
       def get_all_configs(key, scope: nil, dir: nil)
         current_vals, _, stat = git_config("--includes", "--get-all", key, scope: scope, dir: dir)
         return [] unless stat.success?
+
         current_vals.lines.map(&:strip)
       end
 
@@ -131,7 +136,7 @@ module GitChain
       private
 
       def git_config(*config_args, scope: nil, dir: nil)
-        args = %w(config)
+        args = ["config"]
 
         case scope
         when nil
@@ -147,6 +152,7 @@ module GitChain
       def parse_branch_name(config)
         match = /^branch\.(.+)\.[a-zA-Z]+$/.match(config)
         raise("Expected config #{config} to match regexp") unless match
+
         match[1]
       end
     end

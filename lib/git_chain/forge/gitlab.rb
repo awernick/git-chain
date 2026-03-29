@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "open3"
 require "json"
 
@@ -11,15 +12,19 @@ module GitChain
 
       def pr_for_branch(branch_name)
         out, _, stat = Open3.capture3(
-          "glab", "mr", "list",
-          "--source-branch", branch_name,
+          "glab",
+          "mr",
+          "list",
+          "--source-branch",
+          branch_name,
           "--all",
-          "-F", "json"
+          "-F",
+          "json",
         )
-        return nil unless stat.success?
+        return unless stat.success?
 
         mrs = JSON.parse(out)
-        return nil if mrs.empty?
+        return if mrs.empty?
 
         normalize(mrs.first)
       rescue JSON::ParserError, Errno::ENOENT

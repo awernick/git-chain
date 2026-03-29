@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "open3"
 
 module GitChain
@@ -15,7 +16,7 @@ module GitChain
         return adapter if adapter
 
         remote_url ||= Git.remote_url(branch: Git.current_branch.to_s)
-        return nil if remote_url.nil? || remote_url.empty?
+        return if remote_url.nil? || remote_url.empty?
 
         from_remote_url(remote_url)
       end
@@ -24,7 +25,7 @@ module GitChain
 
       def from_config_override
         forge_type = Git.get_config("chain.forge")
-        return nil unless forge_type
+        return unless forge_type
 
         case forge_type.downcase
         when "github" then Github.new
@@ -34,7 +35,7 @@ module GitChain
 
       def from_remote_url(url)
         host = extract_host(url)
-        return nil unless host
+        return unless host
 
         case host
         when /\Agithub\.com\z/ then Github.new

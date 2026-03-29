@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "optparse"
 
 module GitChain
@@ -101,6 +102,7 @@ module GitChain
         end
 
         return "" if parts.empty?
+
         " (#{parts.join(", ")})"
       end
 
@@ -111,6 +113,7 @@ module GitChain
         info = {}
         chain.branches.each do |branch|
           next if branch.parent_branch.nil? # skip base branch
+
           pr = forge.pr_for_branch(branch.name)
           info[branch.name] = pr if pr
         end

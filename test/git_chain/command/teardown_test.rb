@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "test_helper"
 
 module GitChain
@@ -9,11 +10,11 @@ module GitChain
       def test_tearing_down_a_clean_chain
         capture_io do
           with_test_repository("a-b-chain") do
-            assert_equal(%w(master a b), Models::Chain.from_config("default").branch_names)
+            assert_equal(["master", "a", "b"], Models::Chain.from_config("default").branch_names)
 
             Teardown.new.call
 
-            assert(Models::Chain.from_config("default").empty?)
+            assert_empty(Models::Chain.from_config("default"))
           end
         end
       end

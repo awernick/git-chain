@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "test_helper"
 
 module GitChain
@@ -28,7 +29,7 @@ module GitChain
 
         assert_equal(42, pr[:number])
         assert_equal("OPEN", pr[:state])
-        assert_equal(false, pr[:is_draft])
+        refute(pr[:is_draft])
         assert_equal("APPROVED", pr[:review_decision])
       end
 
@@ -53,7 +54,7 @@ module GitChain
           "reviewDecision" => nil,
         })
 
-        assert_equal(true, pr[:is_draft])
+        assert(pr[:is_draft])
       end
 
       private

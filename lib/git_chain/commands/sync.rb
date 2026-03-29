@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "optparse"
 
 module GitChain
@@ -104,7 +105,7 @@ module GitChain
 
           unless branch_point
             raise(Abort, "Branch {{info:#{name}}} and {{info:#{parent_name}}} have no common ancestor. " \
-                         "Cannot reconfigure chain.")
+              "Cannot reconfigure chain.")
           end
 
           updates << { name: name, parent: parent_name, branch_point: branch_point }

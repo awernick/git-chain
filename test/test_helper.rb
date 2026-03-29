@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require File.expand_path("../../vendor/bootstrap.rb", __FILE__)
 require "git_chain"
 

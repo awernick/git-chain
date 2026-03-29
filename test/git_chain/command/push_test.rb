@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "test_helper"
 
 module GitChain
@@ -24,7 +25,7 @@ module GitChain
             assert_nil(Git.remote_name(branch: "a"))
 
             Push.new.call(["-u"])
-            assert_equal(%w(a b).sort, Git.branches(dir: remote_repo).sort)
+            assert_equal(["a", "b"].sort, Git.branches(dir: remote_repo).sort)
 
             assert_equal("test/a", Git.push_branch(branch: "a"))
             assert_equal("test", Git.remote_name(branch: "a"))

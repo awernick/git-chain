@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "optparse"
 
 module GitChain
@@ -7,7 +8,7 @@ module GitChain
       include Options::ChainName
 
       def post_process_options!(options)
-        raise(ArgError, "Expects at least 2 arguments") unless options[:args].size >= 2
+        raise(ArgError, "Expects at least 2 arguments") if options[:args].size < 2
 
         super
 
@@ -79,8 +80,9 @@ module GitChain
             branch_point = merge_base
           end
 
-          next unless b.branch_point != branch_point
+          next if b.branch_point == branch_point
           raise(Abort, "Branch #{b.name} is currently based on #{b.branch_point}") unless branch_point
+
           Git.set_config("branch.#{b.name}.branchPoint", branch_point, scope: :local)
           b.branch_point = branch_point
         end

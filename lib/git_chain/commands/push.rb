@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "optparse"
 
 module GitChain
@@ -48,6 +49,7 @@ module GitChain
             else
               remote = branch_remote
             end
+
             upstreams[b] = upstream_branch
           elsif options[:set_upstream]
             upstreams[b] = b
@@ -179,7 +181,7 @@ module GitChain
 
         puts_info("Push complete: #{parts.join(", ")}")
 
-        return unless failed > 0
+        return if failed <= 0
 
         failed_branches = results.select { |r| r[:status] == :failure }.map { |r| r[:branch] }
         raise(Abort, "Failed to push: #{failed_branches.join(", ")}")

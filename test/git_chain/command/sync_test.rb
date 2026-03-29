@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "test_helper"
 
 module GitChain
@@ -31,7 +32,7 @@ module GitChain
           end
 
           assert_match(/No merged branches detected/, out)
-          assert_equal(%w[master a b], Models::Chain.from_config("default").branch_names)
+          assert_equal(["master", "a", "b"], Models::Chain.from_config("default").branch_names)
         end
       end
 
@@ -53,7 +54,7 @@ module GitChain
           assert_match(/Done/, out)
 
           chain = Models::Chain.from_config("default")
-          assert_equal(%w[master b], chain.branch_names)
+          assert_equal(["master", "b"], chain.branch_names)
         end
       end
 
@@ -77,7 +78,7 @@ module GitChain
           assert_match(/Done/, out)
 
           chain = Models::Chain.from_config("default")
-          assert_equal(%w[master c], chain.branch_names)
+          assert_equal(["master", "c"], chain.branch_names)
         end
       end
 
@@ -100,7 +101,7 @@ module GitChain
           assert_match(/Done/, out)
 
           chain = Models::Chain.from_config("default")
-          assert_equal(%w[master a c], chain.branch_names)
+          assert_equal(["master", "a", "c"], chain.branch_names)
 
           # Verify c's parent is now a
           branch_c = Models::Branch.from_config("c")
@@ -121,7 +122,7 @@ module GitChain
           assert_match(/Remaining chain: master -> b/, out)
 
           # Chain should be unchanged
-          assert_equal(%w[master a b], Models::Chain.from_config("default").branch_names)
+          assert_equal(["master", "a", "b"], Models::Chain.from_config("default").branch_names)
         end
       end
 
@@ -139,7 +140,7 @@ module GitChain
           assert_match(/Remaining chain: master -> c/, out)
 
           # Chain should be unchanged
-          assert_equal(%w[master a b c], Models::Chain.from_config("default").branch_names)
+          assert_equal(["master", "a", "b", "c"], Models::Chain.from_config("default").branch_names)
         end
       end
 
@@ -256,7 +257,7 @@ module GitChain
 
           # Chain should be reconfigured even though rebase failed
           chain = Models::Chain.from_config("default")
-          assert_equal(%w[master b], chain.branch_names)
+          assert_equal(["master", "b"], chain.branch_names)
 
           # Rebase should be in progress
           assert(Git.rebase_in_progress?)
@@ -277,7 +278,7 @@ module GitChain
           assert_match(/no common ancestor/, err.message)
 
           # Chain config should be unchanged
-          assert_equal(%w[master a b c], Models::Chain.from_config("default").branch_names)
+          assert_equal(["master", "a", "b", "c"], Models::Chain.from_config("default").branch_names)
 
           branch_b = Models::Branch.from_config("b")
           assert_equal("a", branch_b.parent_branch)
@@ -299,7 +300,7 @@ module GitChain
           end
 
           assert_match(/Done/, out)
-          assert_equal(%w[master b], Models::Chain.from_config("default").branch_names)
+          assert_equal(["master", "b"], Models::Chain.from_config("default").branch_names)
         end
       end
     end

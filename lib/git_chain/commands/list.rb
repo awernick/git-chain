@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "optparse"
 
 module GitChain
@@ -26,7 +27,7 @@ module GitChain
 
       def current_chain
         branch_name = Git.current_branch
-        return nil unless branch_name
+        return unless branch_name
 
         branch = Models::Branch.from_config(branch_name)
         branch.chain_name
@@ -35,7 +36,7 @@ module GitChain
       def run(options)
         chain_name = options[:args].first
         chain_names = Git.chains(chain_name: chain_name).values.uniq.sort
-        return(AbortSilent) if chain_names.empty? && chain_name
+        return AbortSilent if chain_names.empty? && chain_name
 
         case options[:format]
         when :short

@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "optparse"
 
 module GitChain
@@ -73,7 +74,7 @@ module GitChain
 
       def configure_option_parser(opts, _options)
         opts.on("-h", "--help", "Prints this help") do
-          puts(opts.to_s)
+          puts(opts)
           exit
         end
       end

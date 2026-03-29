@@ -1,4 +1,4 @@
-require:
+plugins:
   - rubocop-performance
   - rubocop-minitest
   - rubocop-rake
@@ -10,3 +10,10 @@ AllCops:
   Exclude:
     - 'vendor/**/*'
   TargetRubyVersion: 2.6
+
+# Upstream patterns we preserve
+Style/ClassMethodsDefinitions:
+  Enabled: false
+
+Style/IdenticalConditionalBranches:
+  Enabled: false

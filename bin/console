@@ -11,7 +11,7 @@ require "irb/ext/save-history"
 IRB_HISTORY_SIZE = 100
 IRB_HISTORY_FILE = File.expand_path("../../.console_history", __FILE__)
 if File.exist?(IRB_HISTORY_FILE)
-  lines = IO.readlines(IRB_HISTORY_FILE).collect(&:chomp)
+  lines = File.readlines(IRB_HISTORY_FILE).collect(&:chomp)
   Readline::HISTORY.push(*lines)
 end
 Kernel.at_exit do

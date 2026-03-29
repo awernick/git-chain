@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module GitChain
   module Commands
     autoload :Branch, "git_chain/commands/branch"

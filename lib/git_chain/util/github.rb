@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module GitChain
   module Util
     module Github
@@ -10,7 +11,7 @@ module GitChain
               ^(?:(?:ssh://)?git@|https?://|git://) # git, http, https, and ssh protocols
               github\.com[/:]                       # domain with either / (http) or : (ssh) separator
               (.+?)/(.+?)(?:\.git)?$                # capture account/org and project; '.git' optional
-            }x
+            }x,
           )
           raise(ArgumentError, "invalid Github URL") unless parsed_arg
 

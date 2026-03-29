@@ -32,15 +32,13 @@ bin/git-chain <command>
 
 ### Ruby Version
 
-The project targets Ruby 2.6+ (`.ruby-version` is 2.6.10) and has been
-verified to work through Ruby 4.0. Code must remain compatible with
-Ruby 2.6 (rubocop enforces this via `TargetRubyVersion: 2.6`).
-
-On macOS, the system Ruby 2.6 works. Set a local gem path to avoid sudo:
+The project targets Ruby 2.6+ (rubocop enforces this via
+`TargetRubyVersion: 2.6`). Development uses Ruby 3.2 via rbenv
+(`.ruby-version` is 3.2.11). rbenv auto-activates the correct version
+when entering the project directory:
 
 ```bash
-export GEM_HOME="$HOME/.gem/ruby/2.6.0"
-export PATH="$GEM_HOME/bin:$PATH"
+rbenv install 3.2.11   # one-time setup
 bundle install
 bundle exec rake test
 ```
