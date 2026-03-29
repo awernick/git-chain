@@ -115,6 +115,14 @@ module GitChain
         current_vals.lines.map(&:strip)
       end
 
+      def ahead_behind(branch, upstream, dir: nil)
+        out = exec("rev-list", "--left-right", "--count", "#{upstream}...#{branch}", dir: dir)
+        behind, ahead = out.split("\t").map(&:to_i)
+        { ahead: ahead, behind: behind }
+      rescue Failure
+        nil
+      end
+
       def rebase_in_progress?(dir: nil)
         dir ||= ".git"
         !Dir.glob(File.join(File.expand_path(dir), "rebase-{apply,merge}")).empty?

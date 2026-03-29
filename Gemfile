@@ -5,6 +5,8 @@ source "https://rubygems.org"
 # They are all for CI and tests
 # `dev` uses no gems
 
+gem "logger"
+
 group :development, :test do
   gem "rubocop", "~> 1.13.0"
   gem "rubocop-performance"
