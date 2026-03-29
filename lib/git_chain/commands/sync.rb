@@ -92,10 +92,11 @@ module GitChain
         merged
       end
 
-      def reconfigure_chain(chain, remaining, merged_names)
+      def reconfigure_chain(_chain, remaining, merged_names)
         # Compute all new config values before writing any changes,
         # so a nil merge-base aborts without leaving partial updates.
-        updates = remaining.each_with_index.filter_map do |name, i|
+        updates = []
+        remaining.each_with_index do |name, i|
           next if i == 0
 
           parent_name = remaining[i - 1]
@@ -106,7 +107,7 @@ module GitChain
                          "Cannot reconfigure chain.")
           end
 
-          { name: name, parent: parent_name, branch_point: branch_point }
+          updates << { name: name, parent: parent_name, branch_point: branch_point }
         end
 
         updates.each do |update|

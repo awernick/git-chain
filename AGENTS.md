@@ -32,16 +32,16 @@ bin/git-chain <command>
 
 ### Ruby Version
 
-The upstream repo targets Ruby 2.6 (`.ruby-version` is 2.6.10). CI tests
-Ruby 2.6 through 3.2. This fork has been verified to work with Ruby 4.0+.
+The project targets Ruby 2.6+ (`.ruby-version` is 2.6.10) and has been
+verified to work through Ruby 4.0. Code must remain compatible with
+Ruby 2.6 (rubocop enforces this via `TargetRubyVersion: 2.6`).
 
-For local development, use Homebrew Ruby since the macOS system Ruby (2.6)
-lacks some newer features:
+On macOS, the system Ruby 2.6 works. Set a local gem path to avoid sudo:
 
 ```bash
-export PATH="/opt/homebrew/Cellar/ruby/4.0.1/bin:$PATH"
-export GEM_HOME="$HOME/.gem/ruby/4.0.1"
+export GEM_HOME="$HOME/.gem/ruby/2.6.0"
 export PATH="$GEM_HOME/bin:$PATH"
+bundle install
 bundle exec rake test
 ```
 
