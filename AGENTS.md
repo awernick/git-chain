@@ -53,6 +53,7 @@ built from a fixture.
 Available fixtures:
 - `a-b` - Two branches (a, b), no chain configured
 - `a-b-chain` - Two branches (a, b) in a chain called "default"
+- `a-b-c-chain` - Three branches (a, b, c) in a chain
 - `a-b-conflicts` - Two branches with conflicting changes
 - `a-b-merged-chain` - Chain with a merged branch
 - `doc-example` - Example chain for documentation
@@ -97,8 +98,10 @@ metadata, forge abstraction). Key constraints:
 
 - **Output**: Use `Util::Output#puts` with cli-ui tags, not `$stdout.puts`
   or `Kernel#puts`. Verify: `grep -rn '\$stdout\.puts\|Kernel\.puts' lib/ test/`
-- **Git operations**: Use `GitChain::Git.exec` (raises on failure) or
-  `Git.capture3` (check exit status). Do not shell out to `git` directly.
+- **Git operations (lib/)**: Use `GitChain::Git.exec` (raises on failure)
+  or `Git.capture3` (check exit status). Do not use `%x`, backticks, or
+  `system("git")` in lib/. Tests may shell out to git when simulating
+  rebase-in-progress or setting up state.
 - **Forge**: Use the `Forge` abstraction for PR/MR operations. Do not
   call `gh` or `glab` directly.
 - **Commands**: Register new commands with `autoload` in `commands.rb`.
@@ -133,7 +136,8 @@ below are checked automatically; they're documented here for context.
 - Mocking: Mocha (`mocha/minitest`)
 - Test helper: `include RepositoryTestHelper` for tests that need a git repo
 - Use `capture_io { }` to capture command output
-- Use `assert_raises(Abort) { }` for expected failures
+- Use `assert_raises(Abort)` or `assert_raises(AbortSilent)` to match
+  the error class raised by the code under test
 - Use `--no-pr` flag in status tests to avoid forge CLI dependencies
 - Skip tests that require external CLIs:
   ```ruby
@@ -167,7 +171,7 @@ below are checked automatically; they're documented here for context.
 - Follow [Conventional Commits](https://www.conventionalcommits.org/):
   `<type>(<scope>): <description>`
 - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
-- Scopes: `status`, `sync`, `push`, `forge`, `branch`, `pr`
+- Scopes: `status`, `sync`, `push`, `forge`, `branch`, `pr`, `ruby`, `docs`
 - Link issues in commit footer: `Closes #N`
 - PRs target `main`, squash merge (one commit per PR on main)
 - PR title follows conventional commit format
