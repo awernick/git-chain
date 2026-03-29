@@ -1,109 +1,152 @@
 # Git Chain
 
-Tool to rebase multiple Git branches based on the previous one.
+Tool to manage stacked pull requests with dependent Git branches.
+
+Fork of [Shopify/git-chain](https://github.com/Shopify/git-chain) with
+additional features: chain status with tree view, forge abstraction
+(GitHub/GitLab), and more.
 
 ## What does Git Chain do?
 
-If you're working on a larger feature that you want to ship in smaller, easier reviewable pull requests, there's a big chance
-that you're creating separate branches for each of them. If the changes don't depend on each other – congratulations 🎉! 
-You can simply base all branches on the master branch and work on them and merge without interference.
+If you're working on a larger feature that you want to ship in smaller,
+easier reviewable pull requests, there's a big chance that you're creating
+separate branches for each of them. If the changes don't depend on each
+other, you can simply base all branches on the main branch and work on them
+independently.
 
-But if your second branch depends on changes in the first and your third branch on changes in the second you'll end up
-doing a lot of manual rebases in case one of your base branches changes (e.g. because you addressed a comment in a review).
+But if your second branch depends on changes in the first and your third
+branch on changes in the second, you'll end up doing a lot of manual
+rebases when a base branch changes (e.g. because you addressed a comment
+in a review).
 
-Git Chain can help you with automating this task. You can specify a chain of branches and rebase them all with a
-single command: `git chain rebase`.
+Git Chain automates this. You specify a chain of branches and manage them
+with a single set of commands.
 
 ## Requirements
 
-- Git (of course)
-- System Ruby (`/usr/bin/ruby -v >= 2.6.3`)
+- Git
+- Ruby (>= 2.6; tested with Ruby 4.0)
+- `gh` (GitHub CLI) or `glab` (GitLab CLI) for PR/MR status features
+  (optional)
 
 ## Installation
 
 ```sh
-$ git clone https://github.com/Shopify/git-chain /usr/local/share/git-chain # Or any folder you see fit
-$ ln -sv /usr/local/share/git-chain/bin/git-chain /usr/local/bin/ # Or any location in your PATH
+git clone https://github.com/awernick/git-chain /usr/local/share/git-chain
+ln -sv /usr/local/share/git-chain/bin/git-chain /usr/local/bin/
 
-$ git chain # Should now work
+git chain # Should now work
 ```
 
 ## Demo
 
 ![Demo recording](docs/demo.gif)
- 
+
+## Quick Start
+
+### Setting up a chain
+
+Tell Git Chain about your branch order:
+
+```
+$ git chain setup -c awesome-feature main feature-database feature-model feature-ui
+Setting up chain awesome-feature
+```
+
+The `-c` option names the chain. The first argument (`main`) is the base
+branch that the chain rebases onto. This setup only needs to be done once
+per chain.
+
+### Checking chain status
+
+See the state of your chain at a glance:
+
+```
+$ git chain status
+awesome-feature
+  main
+  ├── feature-database (2 ahead, #10 open)
+  ├── feature-model (HEAD) (1 ahead, #11 open)
+  └── feature-ui (1 ahead, #12 draft)
+```
+
+Shows ahead/behind counts, current branch, and PR/MR status (if `gh` or
+`glab` is installed). Use `--no-pr` to skip PR lookups.
+
+### Rebasing a chain
+
+Rebase all branches in one go:
+
+```
+$ git chain rebase
+Rebasing the following branches: ["main", "feature-database", "feature-model", "feature-ui"]
+```
+
+Git Chain detects the current chain based on your checked-out branch. Use
+`-c` to target a specific chain if you're not on a chain branch.
+
+### Pushing a chain
+
+Push all branches to the remote:
+
+```
+$ git chain push
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `git chain setup -c <name> <base> <branch>...` | Configure a chain |
+| `git chain status` | Show chain tree with branch and PR state |
+| `git chain rebase` | Rebase all branches onto their parents |
+| `git chain push` | Push all chain branches to remote |
+| `git chain branch <name>` | Create a new branch in the chain |
+| `git chain list` | List existing chains |
+| `git chain prune` | Remove merged branches from chain |
+| `git chain teardown` | Remove chain configuration |
+
 ## Example
 
-Let's have a look at an example. Imagine the following feature: You want to add a new database table (pull request 1), add a model
-using the table (pull request 2) and build a user interface for editing records (pull request 3).
+Imagine the following feature: You want to add a new database table (PR 1),
+add a model using the table (PR 2), and build a user interface for editing
+records (PR 3).
 
-At the beginning you'll have this nice clean git history (`git log --oneline --all --graph`, branch names in parentheses):
+At the beginning you have a clean git history:
 
 ```
 * e7888f9 (HEAD -> feature-ui) feature-ui.2
 * a743802 (feature-model) feature-model.1
 * 9cc4914 (feature-database) feature-database.1
-* f6ba0e9 (master) master.1
+* f6ba0e9 (main) main.1
 ```
 
-You continue work on your branches, your colleagues merge their changes into the master and after a while the git history
-looks like this:
+After working on branches and others merging into main, the history
+diverges:
 
 ```
 * 56b953a (feature-model) feature-model.2
 | * e7888f9 (HEAD -> feature-ui) feature-ui.2
 | * 14090bb feature-ui.1
-|/  
+|/
 * a743802 feature-model.1
 | * 8c46072 (feature-database) feature-database.2
-|/  
+|/
 * 9cc4914 feature-database.1
-| * fdca13e (master) master.2
-|/  
-* f6ba0e9 master.1
+| * fdca13e (main) main.2
+|/
+* f6ba0e9 main.1
 ```
 
-Getting back to the linear git history requires you to manually rebase all branches on top of each other, i.e the `database`
-branch onto `master`, the `model` branch onto `database` and the `ui` branch on top of `model`.
-
-Let's automate this using Git Chain.
-
-### Setting up a chain
-
-Git Chain first needs to learn about the intended branch order. We call this a 'branch chain'. You can create one using
-the `git chain` command.
-
-```
-$ git chain setup -c awesome-feature master feature-database feature-model feature-ui
-Setting up chain awesome-feature
-```
-
-The name of the chain can be specified using the `-c` option. The first argument (in this case `master`) is the name of
-base branch that we want the chain to be rebased onto in the future.
-
-This setup step only needs to be done once per chain.
-
-### Rebasing a chain
-
-You can now rebase all branches in one go:
+Getting back to a linear history requires manually rebasing each branch.
+With Git Chain:
 
 ```
 $ git chain rebase
-Rebasing the following branches: ["master", "feature-database", "feature-model", "feature-ui"]
+Rebasing the following branches: ["main", "feature-database", "feature-model", "feature-ui"]
 ```
 
-Git Chain detects the current chain based on the branch you're currently on (a branch can only be part of one chain). You can
-specify a chain explicitly by using the `-c` option you already saw during setup.
-
-```
-$ git checkout master
-$ git chain rebase   
-Current branch 'master' is not in a chain.
-$ git chain rebase -c awesome-feature
-Rebasing the following branches: ["master", "feature-database", "feature-model", "feature-ui"]
-```
-
-After that you'll end up with a clean history:
+Result:
 
 ```
 * 7974771 (HEAD -> feature-ui) feature-ui.2
@@ -112,54 +155,49 @@ After that you'll end up with a clean history:
 * 3ad1096 feature-model.1
 * 8e333d6 (feature-database) feature-database.2
 * 00ac4d1 feature-database.1
-* fdca13e (master) master.2
-* f6ba0e9 master.1
+* fdca13e (main) main.2
+* f6ba0e9 main.1
 ```
 
-## Handling conflicts
+## Handling Conflicts
 
-Of course, not everything will be as easy as in this idealized case. You'll certainly end up in situations where the rebase 
-operations won't apply cleanly and you need to resolve merge conflicts. Git Chain stops when a rebase fails and
-leaves the repository at that state. You'll have to manually resolve the conflict, finish the current rebase and invoke
-`git chain rebase` again to continue.
-
-Let's look at another example which contains conflicting changes.
-
-```
-* 97637af (a) a.2 (conflicting with b)
-| * 953b860 (c) c.1
-| * 34a2c98 (b) b.1
-|/  
-* 8d9b8fd a.1
-* 0d3fd86 (HEAD -> master) master.1
-```
-
-The rebase of branch `a` onto `master` will work but `b` will have a conflict when rebased on `a`.
+When a rebase hits a conflict, Git Chain stops and leaves the repository at
+that state. Resolve the conflict, finish the rebase, and run
+`git chain rebase` again:
 
 ```
 $ git chain rebase
-Rebasing the following branches: ["master", "a", "b", "c"]
-Cannot merge b onto a. Fix the rebase and run 'git chain rebase' again. 
-...
+Cannot merge b onto a. Fix the rebase and run 'git chain rebase' again.
 
-[...resolving the conflict...]
+# ...resolve the conflict...
 $ git rebase --continue
 Successfully rebased and updated refs/heads/b.
+
 $ git chain rebase
-Rebasing the following branches: ["master", "a", "b", "c"]
+Rebasing the following branches: ["main", "a", "b", "c"]
 ```
 
-## Pushing chains to GitHub pull requests
+## Forge Support
 
-GitHub supports setting a base branch of a pull request via the user interface. You'll need to do this for all branches
-in a chain manually for now.
+Git Chain auto-detects GitHub or GitLab from your remote URL for PR/MR
+status features. No configuration needed for standard github.com or
+gitlab.com remotes.
 
-Edit a pull request:
+For custom domains (e.g. GitHub Enterprise, self-hosted GitLab):
 
-![Pull request header](docs/screenshot_pr_header.png)
+```sh
+git config chain.forge github   # or gitlab
+```
 
-Setting the base branch:
+## Pull Requests
 
-![Edit pull request base](docs/screenshot_pr_header_edit.png)
+GitHub and GitLab support setting a base branch on pull requests. For
+stacked PRs, each branch's PR should target the previous branch in the
+chain (not main).
 
-Once this is done and all remotes are set you can push all branches in a chain using `git chain push`.
+`git chain status` shows which branches have PRs and their current state,
+making it easy to track your stack.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
