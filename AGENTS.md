@@ -8,26 +8,17 @@ chains of dependent git branches, handling rebasing, pushing, and status
 tracking across the stack.
 
 This fork adds: chain status with tree view, forge abstraction
-(GitHub/GitLab), and is actively developing sync, PR creation, and landing
-features.
+(GitHub/GitLab), chain-aware sync after merge, and branch insertion
+flags (`--after`/`--before`).
 
 ## Build / Test Commands
 
 ```bash
-# Install dependencies
-bundle install
-
-# Run the full test suite
-bundle exec rake test
-
-# Run a single test file
-bundle exec ruby -Itest test/git_chain/command/status_test.rb
-
-# Run rubocop
-bundle exec rubocop
-
-# Run the CLI directly from source
-bin/git-chain <command>
+bundle install                    # Install dependencies
+bundle exec rake test             # Run the full test suite
+bundle exec ruby -Itest test/git_chain/command/status_test.rb  # Single file
+bundle exec rubocop               # Run rubocop
+bin/git-chain <command>           # Run CLI from source
 ```
 
 ### Ruby Version
@@ -102,32 +93,19 @@ metadata, forge abstraction). Key constraints:
   or `Git.capture3` (check exit status). Do not use `%x`, backticks, or
   `system("git")` in lib/. Tests may shell out to git when simulating
   rebase-in-progress or setting up state.
-- **Forge**: Use the `Forge` abstraction for PR/MR operations. Do not
-  call `gh` or `glab` directly.
+- **Forge**: Use `Forge.detect!` in commands that require PR/MR data
+  (raises with clear errors if forge or CLI is missing). Use `Forge.detect`
+  (returns nil) when forge info is optional (e.g., status). Supports
+  config overrides: `chain.forge` and `chain.forgeCli`. Do not call
+  `gh` or `glab` directly.
 - **Commands**: Register new commands with `autoload` in `commands.rb`.
 
 ## Code Style
 
-Style is enforced by `bundle exec rubocop` (exit 0 = pass). The rules
-below are checked automatically; they're documented here for context.
-
-### General
-
-- `# frozen_string_literal: true` at the top of every Ruby file
-- `require` statements at the top, after the frozen string literal comment
-- 2-space indentation
-- No trailing whitespace
-- Trailing newline at end of file
-
-### Naming
-
-| Context | Convention | Example |
-|---------|-----------|---------|
-| Classes | PascalCase | `Commands::Status` |
-| Methods | snake_case | `pr_for_branch` |
-| Constants | UPPER_SNAKE_CASE | `TOOL_NAME` |
-| Files | snake_case | `status.rb` |
-| Test classes | PascalCase + Test | `StatusTest` |
+Style is enforced by `bundle exec rubocop` (exit 0 = pass). See
+`.rubocop.yml` for the full ruleset. Key conventions: `frozen_string_literal`
+comment at top of every file, 2-space indentation, PascalCase classes,
+snake_case methods and files.
 
 ### Testing
 
@@ -139,10 +117,10 @@ below are checked automatically; they're documented here for context.
 - Use `assert_raises(Abort)` or `assert_raises(AbortSilent)` to match
   the error class raised by the code under test
 - Use `--no-pr` flag in status tests to avoid forge CLI dependencies
+- Forge tests: use Mocha stubs for `Forge.detect`, `forge.cli_available?`,
+  and `forge.pr_for_branch` (see `sync_test.rb` for the pattern)
 - Skip tests that require external CLIs:
-  ```ruby
-  skip("gh not installed") unless gh_available?
-  ```
+  `skip("gh not installed") unless gh_available?`
 
 ### Adding a New Command
 
@@ -167,7 +145,6 @@ below are checked automatically; they're documented here for context.
 
 ## Git Workflow
 
-- Branch from `main`; naming: `feat/<short-name>`, `fix/<short-name>`
 - Follow [Conventional Commits](https://www.conventionalcommits.org/):
   `<type>(<scope>): <description>`
 - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
