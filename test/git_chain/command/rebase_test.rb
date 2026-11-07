@@ -100,23 +100,25 @@ module GitChain
       end
 
       def test_fast_path_single_rebase_invocation
-        capture_io do
-          with_test_repository("linear-chain") do
-            with_rebase_recording do |calls|
-              Rebase.new.call
+        with_test_repository("linear-chain") do
+          Git.stubs(:supports_update_refs?).returns(true)
+          out = nil
+          with_rebase_recording do |calls|
+            out, _ = capture_io { Rebase.new.call }
 
-              assert_equal(1, calls.length)
-              assert_includes(calls.first, "--update-refs")
+            assert_equal(1, calls.length)
+            assert_includes(calls.first, "--update-refs")
 
-              assert_equal(["a.1"], commit_subjects("master..a"))
-              assert_equal(["b.1"], commit_subjects("a..b"))
-              assert_equal(["c.1"], commit_subjects("b..c"))
+            assert_equal(["a.1"], commit_subjects("master..a"))
+            assert_equal(["b.1"], commit_subjects("a..b"))
+            assert_equal(["c.1"], commit_subjects("b..c"))
 
-              assert_equal(Git.rev_parse("master"), Git.get_config("branch.a.branchPoint"))
-              assert_equal(Git.rev_parse("a"), Git.get_config("branch.b.branchPoint"))
-              assert_equal(Git.rev_parse("b"), Git.get_config("branch.c.branchPoint"))
-            end
+            assert_equal(Git.rev_parse("master"), Git.get_config("branch.a.branchPoint"))
+            assert_equal(Git.rev_parse("a"), Git.get_config("branch.b.branchPoint"))
+            assert_equal(Git.rev_parse("b"), Git.get_config("branch.c.branchPoint"))
           end
+
+          assert_match(/Auto-forwarding.*a.*master/, out)
         end
       end
 
@@ -224,6 +226,25 @@ module GitChain
         end
       end
 
+      def test_verification_failure_aborts_without_writing_configs
+        capture_io do
+          with_test_repository("linear-chain") do
+            Git.stubs(:supports_update_refs?).returns(true)
+            configs_before = ["a", "b", "c"].to_h { |branch| [branch, Git.get_config("branch.#{branch}.branchPoint")] }
+
+            # Eligibility and auto-forward checks pass; verification fails.
+            Git.stubs(:ancestor?).returns(true, true, true, false)
+
+            assert_raises(AbortSilent) do
+              Rebase.new.call
+            end
+
+            configs_after = ["a", "b", "c"].to_h { |branch| [branch, Git.get_config("branch.#{branch}.branchPoint")] }
+            assert_equal(configs_before, configs_after)
+          end
+        end
+      end
+
       def test_fallback_for_diverged_chain
         capture_io do
           with_test_repository("linear-chain") do
@@ -248,6 +269,7 @@ module GitChain
       def test_fast_path_conflict_continue_then_rerun
         capture_io do
           with_test_repository("linear-chain-conflicts") do
+            Git.stubs(:supports_update_refs?).returns(true)
             with_rebase_recording do |calls|
               branch_point_before = Git.get_config("branch.a.branchPoint")
 
@@ -286,6 +308,7 @@ module GitChain
       def test_fast_path_conflict_abort_restores_refs
         capture_io do
           with_test_repository("linear-chain-conflicts") do
+            Git.stubs(:supports_update_refs?).returns(true)
             refs_before = ["a", "b", "c"].to_h { |branch| [branch, Git.rev_parse(branch)] }
 
             assert_raises(AbortSilent) do

@@ -51,8 +51,10 @@ config entries and sorting branches by parent relationships.
 ## Chain Rebase
 
 `ChainRebase` is the shared service behind `git chain rebase` and
-`git chain sync`. It finds the stale segment (branches whose `branchPoint`
-no longer matches their parent's tip) and rebases it in one of two ways:
+`git chain sync`. It finds the stale segment: the first branch whose
+`branchPoint` no longer matches its parent's tip, plus every descendant
+through the chain tip (descendants must be replayed because their parents
+move). It rebases that segment in one of two ways:
 
 - **Single pass** (Git 2.38+): one `git rebase --keep-empty --update-refs`
   replays the whole segment and moves every branch ref. Used only when the

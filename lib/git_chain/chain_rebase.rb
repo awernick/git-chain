@@ -5,8 +5,9 @@ module GitChain
   #
   # The service performs no output: it yields progress events and returns a
   # result, so each command keeps its own user-facing messages. branchPoint
-  # configs are persisted only after every rebase has succeeded, leaving git's
-  # conflict state and git-chain metadata consistent on failure.
+  # configs are persisted only after every rebase has succeeded. On failure,
+  # metadata is intentionally left unchanged; rerunning the command after
+  # continuing or aborting the rebase reconciles it.
   module ChainRebase
     # Raised when a rebase fails. Git's rebase state is left intact for the
     # user to resolve; no branchPoint configs have been written.
@@ -86,6 +87,8 @@ module GitChain
 
       def segment_movable?(segment)
         other_worktrees = Git.other_worktree_branches
+        return false if other_worktrees.nil?
+
         current = Git.current_branch
         tip = segment.last.name
 
@@ -100,11 +103,18 @@ module GitChain
         range = Git.exec("rev-list", "#{segment.first.branch_point}..#{segment.last.name}").split("\n")
         return false if range.empty?
 
+        refs = Git.branch_refs
+        return true if refs.nil?
+
         segment_refs = segment.map { |branch| "refs/heads/#{branch.name}" }
 
-        Git.branch_refs.any? do |ref, sha|
+        refs.any? do |ref, sha|
           !segment_refs.include?(ref) && range.include?(sha)
         end
+      rescue GitChain::Git::Failure
+        # An unreadable range (e.g. a garbage-collected branchPoint) makes the
+        # fast path ineligible; the fallback reports the failure structurally.
+        true
       end
 
       def single_pass_rebase(segment, auto_forward, &block)

@@ -152,6 +152,8 @@ module GitChain
 
       # Branches checked out in worktrees other than the current one.
       # Git refuses to move these refs during a rebase with --update-refs.
+      # Returns nil when the worktree list cannot be read, so callers treat
+      # the result as unknown rather than empty.
       def other_worktree_branches(dir: nil)
         out = exec("worktree", "list", "--porcelain", dir: dir)
         toplevel = exec("rev-parse", "--show-toplevel", dir: dir)
@@ -165,17 +167,18 @@ module GitChain
           lines.find { |line| line.start_with?("branch ") }&.delete_prefix("branch ")
         end.compact
       rescue Failure
-        []
+        nil
       end
 
-      # Local branch refs as { "refs/heads/<name>" => sha }.
+      # Local branch refs as { "refs/heads/<name>" => sha }. Returns nil when
+      # refs cannot be enumerated, so callers treat the result as unknown.
       def branch_refs(dir: nil)
         exec("for-each-ref", "--format=%(refname) %(objectname)", "refs/heads", dir: dir)
           .split("\n")
           .map { |line| line.split(" ") }
           .to_h
       rescue Failure
-        {}
+        nil
       end
 
       private

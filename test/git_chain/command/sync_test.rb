@@ -271,6 +271,18 @@ module GitChain
           assert_match(/Resolve the conflict/, err)
           assert_match(/rebase --continue/, err)
           assert_equal(Git.merge_base("master", "b"), Git.get_config("branch.b.branchPoint"))
+
+          # Resolve, continue, then rerun to refresh metadata
+          File.write("b.txt", "resolved\n")
+          Git.exec("add", "b.txt")
+          Git.exec("commit", "--no-edit")
+          Git.exec("rebase", "--continue")
+          refute(Git.rebase_in_progress?)
+
+          Rebase.new.call
+
+          assert_equal(Git.rev_parse("master"), Git.merge_base("master", "b"))
+          assert_equal(Git.rev_parse("master"), Git.get_config("branch.b.branchPoint"))
         end
       end
 
