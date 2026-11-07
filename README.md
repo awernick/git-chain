@@ -86,10 +86,12 @@ Git Chain detects the current chain based on your checked-out branch. Use
 `-c` to target a specific chain if you're not on a chain branch.
 
 When every branch in the stale part of the chain is strictly stacked on its
-parent (each branch contains its parent's tip) and none of them is checked
-out in another worktree, the chain is rebased in a single
-`git rebase --update-refs` pass (Git 2.38+). Otherwise each branch is
-rebased onto its parent individually. Both paths produce the same result.
+parent (each branch contains its parent's tip), no branch in that part is
+checked out in another worktree (or, apart from the tip, in the current
+one), and no other branch points into the commits being replayed, the chain
+is rebased in a single `git rebase --update-refs` pass (Git 2.38+).
+Otherwise each branch is rebased onto its parent individually. Both paths
+replay the same commits and update the same branch refs.
 
 ### Pushing a chain
 

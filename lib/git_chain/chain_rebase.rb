@@ -35,7 +35,7 @@ module GitChain
       #   [:up_to_date, branch_name]
       #   [:auto_forward, branch_name, parent_name]
       #   [:rebase_branch, branch_name, parent_name]
-      #   [:rebase_segment, segment_names, parent_name]
+      #   [:rebase_command, git_args]
       #
       # Returns a Result with the number of updated branches. Raises Failure
       # if a rebase fails, or VerificationError if the fast path completed
@@ -57,6 +57,9 @@ module GitChain
       # - no branch of the segment checked out in another worktree, and no
       #   segment branch other than the tip checked out here: git snapshots
       #   worktree state when the rebase starts and silently skips those refs
+      # - no branch outside the segment pointing into the replayed range:
+      #   --update-refs force-updates every branch pointing at a replayed
+      #   commit, including branches that are not part of the chain
       # - adjacent pairs inside the segment to be nested: each parent's tip
       #   is an ancestor of its child. The pair between the segment's parent
       #   and its first branch is the relationship being rebased and is
@@ -72,6 +75,7 @@ module GitChain
         segment = branches[start..-1]
 
         return unless segment_movable?(segment)
+        return if foreign_refs_in_range?(segment)
 
         segment.each_cons(2) do |parent, child|
           return nil unless Git.ancestor?(ancestor: parent.name, rev: child.name)
@@ -92,6 +96,17 @@ module GitChain
         end
       end
 
+      def foreign_refs_in_range?(segment)
+        range = Git.exec("rev-list", "#{segment.first.branch_point}..#{segment.last.name}").split("\n")
+        return false if range.empty?
+
+        segment_refs = segment.map { |branch| "refs/heads/#{branch.name}" }
+
+        Git.branch_refs.any? do |ref, sha|
+          !segment_refs.include?(ref) && range.include?(sha)
+        end
+      end
+
       def single_pass_rebase(segment, auto_forward, &block)
         lowest = segment.first
         parent_sha = Git.rev_parse(lowest.parent_branch)
@@ -102,10 +117,15 @@ module GitChain
           yield(:auto_forward, lowest.name, lowest.parent_branch) if block
         end
 
-        yield(:rebase_segment, segment.map(&:name), lowest.parent_branch) if block
+        segment.each do |branch|
+          yield(:rebase_branch, branch.name, branch.parent_branch) if block
+        end
+
+        args = ["rebase", "--keep-empty", "--update-refs", "--onto", lowest.parent_branch, branch_point, segment.last.name]
+        yield(:rebase_command, args) if block
 
         begin
-          Git.exec("rebase", "--keep-empty", "--update-refs", "--onto", lowest.parent_branch, branch_point, segment.last.name)
+          Git.exec(*args)
         rescue GitChain::Git::Failure => e
           raise(Failure.new(lowest.name, lowest.parent_branch, e))
         end
@@ -149,8 +169,11 @@ module GitChain
           updated += 1
           yield(:rebase_branch, branch.name, branch.parent_branch) if block
 
+          args = ["rebase", "--keep-empty", "--onto", branch.parent_branch, branch_point, branch.name]
+          yield(:rebase_command, args) if block
+
           begin
-            Git.exec("rebase", "--keep-empty", "--onto", branch.parent_branch, branch_point, branch.name)
+            Git.exec(*args)
           rescue GitChain::Git::Failure => e
             raise(Failure.new(branch.name, branch.parent_branch, e))
           end

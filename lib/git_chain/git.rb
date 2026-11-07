@@ -157,15 +157,25 @@ module GitChain
         toplevel = exec("rev-parse", "--show-toplevel", dir: dir)
         current = File.expand_path(toplevel)
 
-        out.split("\n\n").filter_map do |block|
+        out.split("\n\n").map do |block|
           lines = block.split("\n")
           path = lines.shift[/^worktree (.+)$/, 1]
           next if path.nil? || File.expand_path(path) == current
 
           lines.find { |line| line.start_with?("branch ") }&.delete_prefix("branch ")
-        end
+        end.compact
       rescue Failure
         []
+      end
+
+      # Local branch refs as { "refs/heads/<name>" => sha }.
+      def branch_refs(dir: nil)
+        exec("for-each-ref", "--format=%(refname) %(objectname)", "refs/heads", dir: dir)
+          .split("\n")
+          .map { |line| line.split(" ") }
+          .to_h
+      rescue Failure
+        {}
       end
 
       private

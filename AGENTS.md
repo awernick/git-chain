@@ -84,6 +84,7 @@ lib/git_chain/
   commands/                # Command implementations (one file per command)
   forge/                   # Forge adapters: GitHub (gh), GitLab (glab)
   models/                  # Branch and Chain data models
+  chain_rebase.rb          # Shared chain rebase service (fast path + fallback)
   git.rb                   # Git command wrapper (shells out via Open3)
 fixtures/*.sh              # Shell scripts that create test git repos
 test/git_chain/            # Minitest tests (mirrors lib/ structure)
@@ -107,6 +108,11 @@ metadata, forge abstraction). Key constraints:
   config overrides: `chain.forge` and `chain.forgeCli`. Do not call
   `gh` or `glab` directly.
 - **Commands**: Register new commands with `autoload` in `commands.rb`.
+- **Rebase**: `ChainRebase` owns chain rebasing for both `rebase` and
+  `sync`. It uses a single `git rebase --update-refs` pass when the stale
+  segment is strictly nested and no worktree or foreign branch would be
+  disturbed, and falls back to per-branch `--onto` rebases otherwise.
+  Commands render progress through the block it yields.
 
 ## Code Style
 
@@ -129,6 +135,9 @@ snake_case methods and files.
   and `forge.pr_for_branch` (see `sync_test.rb` for the pattern)
 - Skip tests that require external CLIs:
   `skip("gh not installed") unless gh_available?`
+- Rebase tests: use `with_rebase_recording { |calls| ... }` from
+  `test/test_helper.rb` to record the `git rebase` invocations while still
+  executing them.
 
 ### Adding a New Command
 

@@ -182,16 +182,43 @@ module GitChain
         end
       end
 
+      def test_fallback_when_foreign_branch_points_into_range
+        capture_io do
+          with_test_repository("linear-chain") do
+            # scratch points at a.1, a commit inside the replayed range
+            Git.exec("branch", "scratch", "b~1")
+            scratch_before = Git.rev_parse("scratch")
+
+            with_rebase_recording do |calls|
+              Rebase.new.call
+
+              calls.each { |args| refute_includes(args, "--update-refs") }
+              assert_equal(scratch_before, Git.rev_parse("scratch"))
+
+              assert_equal(["a.1"], commit_subjects("master..a"))
+              assert_equal(["b.1"], commit_subjects("a..b"))
+              assert_equal(["c.1"], commit_subjects("b..c"))
+            end
+          end
+        end
+      end
+
       def test_fallback_when_branch_checked_out_in_worktree
         capture_io do
           with_test_repository("linear-chain") do
             Git.exec("worktree", "add", ".worktrees/b", "b")
+            configs_before = ["a", "b", "c"].to_h { |branch| [branch, Git.get_config("branch.#{branch}.branchPoint")] }
+
             with_rebase_recording do |calls|
               assert_raises(AbortSilent) do
                 Rebase.new.call
               end
 
               calls.each { |args| refute_includes(args, "--update-refs") }
+
+              # no branchPoint config is written when the rebase fails
+              configs_after = ["a", "b", "c"].to_h { |branch| [branch, Git.get_config("branch.#{branch}.branchPoint")] }
+              assert_equal(configs_before, configs_after)
             end
           end
         end

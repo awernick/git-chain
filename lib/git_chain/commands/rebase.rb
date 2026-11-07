@@ -30,6 +30,8 @@ module GitChain
             puts_debug("Branch {{info:#{args[0]}}} is already up-to-date.")
           when :auto_forward
             puts_info("Auto-forwarding #{args[0]} to #{args[1]}")
+          when :rebase_command
+            puts_debug_git(*args[0])
           end
         end
 

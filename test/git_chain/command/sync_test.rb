@@ -252,9 +252,13 @@ module GitChain
 
           mock_forge("a" => "MERGED", "b" => "OPEN")
 
-          assert_raises(AbortSilent) do
-            capture_io { Sync.new.call }
+          aborted = false
+          _, err = capture_io do
+            Sync.new.call
+          rescue AbortSilent
+            aborted = true
           end
+          assert(aborted)
 
           # Chain should be reconfigured even though rebase failed
           chain = Models::Chain.from_config("default")
@@ -262,6 +266,11 @@ module GitChain
 
           # Rebase should be in progress
           assert(Git.rebase_in_progress?)
+
+          # Recovery guidance is printed (errors go to stderr) and branchPoint was not advanced
+          assert_match(/Resolve the conflict/, err)
+          assert_match(/rebase --continue/, err)
+          assert_equal(Git.merge_base("master", "b"), Git.get_config("branch.b.branchPoint"))
         end
       end
 
@@ -316,14 +325,15 @@ module GitChain
 
           mock_forge("a" => "MERGED", "b" => "OPEN", "c" => "OPEN")
 
-          out, _ = nil
+          out = nil
           with_rebase_recording do |calls|
             out, _ = capture_io do
               Sync.new.call
             end
 
             assert_match(/Detected merged branch.*a/, out)
-            assert_match(/Rebasing.*b c.*onto/, out)
+            assert_match(/Rebasing.*b.*onto.*master/, out)
+            assert_match(/Rebasing.*c.*onto.*b/, out)
             assert_match(/Done/, out)
 
             assert_equal(1, calls.length)

@@ -128,8 +128,6 @@ module GitChain
             puts_debug("Branch {{info:#{args[0]}}} is already up-to-date.")
           when :rebase_branch
             puts_info("Rebasing {{info:#{args[0]}}} onto {{info:#{args[1]}}}")
-          when :rebase_segment
-            puts_info("Rebasing {{info:#{args[0].join(" ")}}} onto {{info:#{args[1]}}}")
           end
         end
       rescue ChainRebase::VerificationError => e
