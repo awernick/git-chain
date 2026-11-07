@@ -304,6 +304,49 @@ module GitChain
           assert_equal(["master", "b"], Models::Chain.from_config("default").branch_names)
         end
       end
+
+      def test_sync_fast_path_after_merge
+        with_test_repository("linear-chain") do
+          capture_io { Rebase.new.call }
+
+          Git.exec("checkout", "master")
+          Git.exec("merge", "a")
+          Git.exec("commit", "--allow-empty", "-m", "master.3")
+          Git.exec("checkout", "c")
+
+          mock_forge("a" => "MERGED", "b" => "OPEN", "c" => "OPEN")
+
+          out, _ = nil
+          with_rebase_recording do |calls|
+            out, _ = capture_io do
+              Sync.new.call
+            end
+
+            assert_match(/Detected merged branch.*a/, out)
+            assert_match(/Rebasing.*b c.*onto/, out)
+            assert_match(/Done/, out)
+
+            assert_equal(1, calls.length)
+            assert_includes(calls.first, "--update-refs")
+          end
+
+          chain = Models::Chain.from_config("default")
+          assert_equal(["master", "b", "c"], chain.branch_names)
+
+          assert_equal(Git.rev_parse("master"), Git.get_config("branch.b.branchPoint"))
+          assert_equal(Git.rev_parse("b"), Git.get_config("branch.c.branchPoint"))
+
+          assert_equal(["b.1"], commit_subjects("master..b"))
+          assert_equal(["c.1"], commit_subjects("b..c"))
+          assert_equal("c", Git.current_branch)
+        end
+      end
+
+      private
+
+      def commit_subjects(range)
+        Git.exec("log", "--format=%s", range).split("\n")
+      end
     end
   end
 end

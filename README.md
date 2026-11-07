@@ -85,6 +85,12 @@ Rebasing the following branches: ["main", "feature-database", "feature-model", "
 Git Chain detects the current chain based on your checked-out branch. Use
 `-c` to target a specific chain if you're not on a chain branch.
 
+When every branch in the stale part of the chain is strictly stacked on its
+parent (each branch contains its parent's tip) and none of them is checked
+out in another worktree, the chain is rebased in a single
+`git rebase --update-refs` pass (Git 2.38+). Otherwise each branch is
+rebased onto its parent individually. Both paths produce the same result.
+
 ### Pushing a chain
 
 Push all branches to the remote:

@@ -47,6 +47,8 @@ Available fixtures:
 - `a-b-conflicts` - Two branches with conflicting changes
 - `a-b-merged-chain` - Chain with a merged branch
 - `doc-example` - Example chain for documentation
+- `linear-chain` - Three nested branches (a, b, c), each stacked on its parent's tip
+- `linear-chain-conflicts` - Nested chain with a conflict against the advanced base
 - `orphan` - Orphan branch scenario
 
 Verify with: `ls fixtures/*.sh`

@@ -133,7 +133,55 @@ module GitChain
         !Dir.glob(File.join(File.expand_path(dir), "rebase-{apply,merge}")).empty?
       end
 
+      def git_version
+        @git_version ||= exec("version")[/^git version (\S+)/, 1]
+      rescue Failure
+        nil
+      end
+
+      def supports_update_refs?
+        version = git_version
+        return false unless version
+
+        version_at_least?(version, "2.38.0")
+      end
+
+      def reset_version_cache
+        @git_version = nil
+      end
+
+      # Branches checked out in worktrees other than the current one.
+      # Git refuses to move these refs during a rebase with --update-refs.
+      def other_worktree_branches(dir: nil)
+        out = exec("worktree", "list", "--porcelain", dir: dir)
+        toplevel = exec("rev-parse", "--show-toplevel", dir: dir)
+        current = File.expand_path(toplevel)
+
+        out.split("\n\n").filter_map do |block|
+          lines = block.split("\n")
+          path = lines.shift[/^worktree (.+)$/, 1]
+          next if path.nil? || File.expand_path(path) == current
+
+          lines.find { |line| line.start_with?("branch ") }&.delete_prefix("branch ")
+        end
+      rescue Failure
+        []
+      end
+
       private
+
+      def version_at_least?(version, minimum)
+        parts = version.split(".").map(&:to_i)
+        min_parts = minimum.split(".").map(&:to_i)
+
+        [parts.size, min_parts.size].max.times do |i|
+          a = parts[i] || 0
+          b = min_parts[i] || 0
+          return a > b if a != b
+        end
+
+        true
+      end
 
       def git_config(*config_args, scope: nil, dir: nil)
         args = ["config"]
