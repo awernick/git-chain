@@ -85,6 +85,14 @@ Rebasing the following branches: ["main", "feature-database", "feature-model", "
 Git Chain detects the current chain based on your checked-out branch. Use
 `-c` to target a specific chain if you're not on a chain branch.
 
+When every branch in the stale part of the chain is strictly stacked on its
+parent (each branch contains its parent's tip), no branch in that part is
+checked out in another worktree (or, apart from the tip, in the current
+one), and no other branch points into the commits being replayed, the chain
+is rebased in a single `git rebase --update-refs` pass (Git 2.38+).
+Otherwise each branch is rebased onto its parent individually. Both paths
+replay the same commits and update the same branch refs.
+
 ### Pushing a chain
 
 Push all branches to the remote:
@@ -100,11 +108,16 @@ $ git chain push
 | `git chain setup -c <name> <base> <branch>...` | Configure a chain |
 | `git chain status` | Show chain tree with branch and PR state |
 | `git chain rebase` | Rebase all branches onto their parents |
+| `git chain sync -c <name>` | Fetch, remove merged branches, and rebase the chain |
 | `git chain push` | Push all chain branches to remote |
 | `git chain branch <name>` | Create a new branch in the chain |
 | `git chain list` | List existing chains |
 | `git chain prune` | Remove merged branches from chain |
 | `git chain teardown` | Remove chain configuration |
+
+`git chain sync` removes merged branches, reconfigures the chain, and then
+rebases it using the same guarded single-pass or per-branch fallback
+behavior as `git chain rebase`.
 
 ## Example
 
@@ -176,6 +189,11 @@ Successfully rebased and updated refs/heads/b.
 $ git chain rebase
 Rebasing the following branches: ["main", "a", "b", "c"]
 ```
+
+With the single-pass path, one conflict session covers the whole segment,
+and `git rebase --abort` restores every ref moved by that rebase. After a
+successful `git rebase --continue`, run `git chain rebase` again so
+`branchPoint` metadata is refreshed.
 
 ## Forge Support
 

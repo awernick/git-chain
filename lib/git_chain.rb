@@ -13,6 +13,7 @@ module GitChain
 
   autocall(:Logger) { CLI::Kit::Logger.new(debug_log_file: DEBUG_LOG_FILE) }
 
+  autoload :ChainRebase, "git_chain/chain_rebase"
   autoload :Commands, "git_chain/commands"
   autoload :EntryPoint, "git_chain/entry_point"
   autoload :Forge, "git_chain/forge"

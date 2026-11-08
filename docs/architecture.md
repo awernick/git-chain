@@ -48,6 +48,30 @@ branch.<name>.branchPoint = <commit-sha>
 `Models::Chain.from_config(name)` reconstructs the chain by reading these
 config entries and sorting branches by parent relationships.
 
+## Chain Rebase
+
+`ChainRebase` is the shared service behind `git chain rebase` and
+`git chain sync`. It finds the stale segment: the first branch whose
+`branchPoint` no longer matches its parent's tip, plus every descendant
+through the chain tip (descendants must be replayed because their parents
+move). It rebases that segment in one of two ways:
+
+- **Single pass** (Git 2.38+): one `git rebase --keep-empty --update-refs`
+  replays the whole segment and moves every branch ref. Used only when the
+  segment is strictly nested (each branch contains its parent's tip), no
+  segment branch is checked out in another worktree (or, apart from the
+  tip, in the current one), and no branch outside the segment points into
+  the replayed range. Git snapshots worktree state when the rebase starts
+  and silently skips refs checked out elsewhere, so these guards are
+  correctness requirements, not optimizations.
+- **Per-branch fallback**: each branch is rebased onto its parent with
+  `git rebase --keep-empty --onto <parent> <branchPoint> <branch>`.
+
+Both paths persist `branchPoint` only after the rebase succeeds. The fast
+path verifies every branch ref before writing configs. Commands pass a
+block to render progress events (`:up_to_date`, `:auto_forward`,
+`:rebase_branch`, `:rebase_command`).
+
 ## Forge Abstraction
 
 The `Forge` module detects GitHub or GitLab from the remote URL and

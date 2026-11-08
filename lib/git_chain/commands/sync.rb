@@ -122,25 +122,23 @@ module GitChain
       def rebase_chain(chain_name)
         chain = Models::Chain.from_config(chain_name)
 
-        chain.branches[1..-1].each do |branch|
-          parent_sha = Git.rev_parse(branch.parent_branch)
-
-          if parent_sha == branch.branch_point
-            puts_debug("Branch {{info:#{branch.name}}} is already up-to-date.")
-            next
+        ChainRebase.call(chain) do |event, *args|
+          case event
+          when :up_to_date
+            puts_debug("Branch {{info:#{args[0]}}} is already up-to-date.")
+          when :rebase_branch
+            puts_info("Rebasing {{info:#{args[0]}}} onto {{info:#{args[1]}}}")
           end
-
-          args = ["rebase", "--keep-empty", "--onto", branch.parent_branch, branch.branch_point, branch.name]
-          puts_info("Rebasing {{info:#{branch.name}}} onto {{info:#{branch.parent_branch}}}")
-          Git.exec(*args)
-          Git.set_config("branch.#{branch.name}.branchPoint", parent_sha, scope: :local)
-        rescue Git::Failure => e
-          puts_warning(e.message)
-          puts_error("Cannot rebase {{info:#{branch.name}}} onto {{info:#{branch.parent_branch}}}.")
-          puts_error("The chain has been reconfigured. Resolve the conflict, then run:")
-          puts_error("  {{command:git rebase --continue}} followed by {{command:git chain rebase}}")
-          raise(AbortSilent)
         end
+      rescue ChainRebase::VerificationError => e
+        puts_error(e.message)
+        raise(AbortSilent)
+      rescue ChainRebase::Failure => e
+        puts_warning(e.original.message)
+        puts_error("Cannot rebase {{info:#{e.branch}}} onto {{info:#{e.parent}}}.")
+        puts_error("The chain has been reconfigured. Resolve the conflict, then run:")
+        puts_error("  {{command:git rebase --continue}} followed by {{command:git chain rebase}}")
+        raise(AbortSilent)
       end
     end
   end

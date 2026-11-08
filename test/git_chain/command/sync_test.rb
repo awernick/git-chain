@@ -252,9 +252,13 @@ module GitChain
 
           mock_forge("a" => "MERGED", "b" => "OPEN")
 
-          assert_raises(AbortSilent) do
-            capture_io { Sync.new.call }
+          aborted = false
+          _, err = capture_io do
+            Sync.new.call
+          rescue AbortSilent
+            aborted = true
           end
+          assert(aborted)
 
           # Chain should be reconfigured even though rebase failed
           chain = Models::Chain.from_config("default")
@@ -262,6 +266,23 @@ module GitChain
 
           # Rebase should be in progress
           assert(Git.rebase_in_progress?)
+
+          # Recovery guidance is printed (errors go to stderr) and branchPoint was not advanced
+          assert_match(/Resolve the conflict/, err)
+          assert_match(/rebase --continue/, err)
+          assert_equal(Git.merge_base("master", "b"), Git.get_config("branch.b.branchPoint"))
+
+          # Resolve, continue, then rerun to refresh metadata
+          File.write("b.txt", "resolved\n")
+          Git.exec("add", "b.txt")
+          Git.exec("commit", "--no-edit")
+          Git.exec("rebase", "--continue")
+          refute(Git.rebase_in_progress?)
+
+          Rebase.new.call
+
+          assert_equal(Git.rev_parse("master"), Git.merge_base("master", "b"))
+          assert_equal(Git.rev_parse("master"), Git.get_config("branch.b.branchPoint"))
         end
       end
 
@@ -303,6 +324,50 @@ module GitChain
           assert_match(/Done/, out)
           assert_equal(["master", "b"], Models::Chain.from_config("default").branch_names)
         end
+      end
+
+      def test_sync_fast_path_after_merge
+        with_test_repository("linear-chain") do
+          capture_io { Rebase.new.call }
+
+          Git.exec("checkout", "master")
+          Git.exec("merge", "a")
+          Git.exec("commit", "--allow-empty", "-m", "master.3")
+          Git.exec("checkout", "c")
+
+          mock_forge("a" => "MERGED", "b" => "OPEN", "c" => "OPEN")
+
+          out = nil
+          with_rebase_recording do |calls|
+            out, _ = capture_io do
+              Sync.new.call
+            end
+
+            assert_match(/Detected merged branch.*a/, out)
+            assert_match(/Rebasing.*b.*onto.*master/, out)
+            assert_match(/Rebasing.*c.*onto.*b/, out)
+            assert_match(/Done/, out)
+
+            assert_equal(1, calls.length)
+            assert_includes(calls.first, "--update-refs")
+          end
+
+          chain = Models::Chain.from_config("default")
+          assert_equal(["master", "b", "c"], chain.branch_names)
+
+          assert_equal(Git.rev_parse("master"), Git.get_config("branch.b.branchPoint"))
+          assert_equal(Git.rev_parse("b"), Git.get_config("branch.c.branchPoint"))
+
+          assert_equal(["b.1"], commit_subjects("master..b"))
+          assert_equal(["c.1"], commit_subjects("b..c"))
+          assert_equal("c", Git.current_branch)
+        end
+      end
+
+      private
+
+      def commit_subjects(range)
+        Git.exec("log", "--format=%s", range).split("\n")
       end
     end
   end
