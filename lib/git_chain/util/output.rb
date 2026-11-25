@@ -4,7 +4,7 @@ module GitChain
   module Util
     module Output
       def puts(text)
-        GitChain::Logger.info(text)
+        GitChain::Logger.info(text.to_s)
       end
 
       def puts_warning(text)
